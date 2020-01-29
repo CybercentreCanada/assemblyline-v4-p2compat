@@ -1,0 +1,62 @@
+
+options:
+  max-time: 2
+
+pipelines:
+  default:
+    - step:
+        name: Build & Test 2.7
+        image: python:2.7
+        caches: &caches
+          - pip
+        script:
+          - mkdir -p /etc/assemblyline/
+          - mkdir -p /var/log/assemblyline/
+          - cp test/config.yml /etc/assemblyline
+          - apt update
+          - apt install -y build-essential libffi-dev libfuzzy-dev python2-dev
+          - pip install -e . -r test/requirements.txt
+          - pytest -rsx -vv
+  tags:
+    v*:
+      - step:
+          name: Build Package
+          image: python:2.7
+          script:
+            - pip install wheel
+            - python setup.py bdist_wheel
+            - ls dist/
+          artifacts:
+            - dist/*
+      - step:
+          name: Test 2.7
+          image: python:2.7
+          script:
+            - rm -rf assemblyline_v4_p2compat setup.py  # Make sure we are running on the package from the prior build
+            - apt update
+            - apt install -y build-essential libffi-dev libfuzzy-dev python2-dev
+            - pip install -f dist assemblyline_v4_p2compat
+            - mkdir -p /etc/assemblyline/
+            - mkdir -p /var/log/assemblyline/
+            - cp test/config.yml /etc/assemblyline
+            - pip install -r test/requirements.txt
+            - pytest -rsx -vv
+          caches: *caches
+      - step:
+          name: Deploy to Test PyPI
+          image: python:2.7
+          deployment: test_pypi
+          caches: *caches
+          script:
+            - pip install twine
+            - ls dist
+            - twine upload --skip-existing --repository-url $TEST_REPOSITORY_URL dist/*
+      - step:
+          name: Deploy to PyPI
+          image: python:2.7
+          deployment: pypi
+          caches: *caches
+          script:
+            - pip install twine
+            - ls dist
+            - twine upload --skip-existing dist/*
