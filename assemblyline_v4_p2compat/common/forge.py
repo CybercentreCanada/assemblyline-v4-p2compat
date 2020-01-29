@@ -19,7 +19,7 @@ def get_config():
             'log_to_syslog': False,
             'syslog_host': 'localhost',
             'export_interval': 5,
-            'log_as_json': False
+            'log_as_json': True
         }
     }
 
