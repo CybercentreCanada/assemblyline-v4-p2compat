@@ -31,7 +31,8 @@ setup(
     install_requires=[
         'PyYAML',
         'netifaces',
-        'easydict'
+        'easydict',
+        'chardet'
     ],
     package_data={
         '': []

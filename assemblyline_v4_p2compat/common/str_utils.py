@@ -1,7 +1,6 @@
+import chardet
 import re
 from copy import copy
-
-import chardet
 
 
 def remove_bidir_unicode_controls(in_str):
@@ -23,13 +22,13 @@ def wrap_bidir_unicode_string(uni_str):
     """
     Wraps str in a LRE (Left-to-Right Embed) unicode control
     Guarantees that str can be concatenated to other strings without
-    affecting their left-to-right direction
+        affecting their left-to-right direction
     """
 
-    if len(uni_str) == 0 or isinstance(uni_str, bytes):  # Not str, return it unchanged
+    if len(uni_str) == 0 or isinstance(uni_str, unicode):  # Not unicode, return it unchanged
         return uni_str
 
-    re_obj = re.search(r'[\u202E\u202B\u202D\u202A\u200E\u200F]', uni_str)
+    re_obj = re.search(ur'[\u202E\u202B\u202D\u202A\u200E\u200F]', uni_str)
     if re_obj is None or len(re_obj.group()) == 0:  # No unicode bidir controls found, return string unchanged
         return uni_str
 
@@ -82,15 +81,14 @@ def _escape(t, reversible=True):
 
 
 def dotdump(s):
-    return ''.join('.' if x < 32 or x > 126 else chr(x) for x in s)
+    return ''.join('.' if ord(x) < 32 or ord(x) > 126 else x for x in s)
 
 
-def escape_str(s, reversible=True, force_str=False):
-    if isinstance(s, bytes):
-        return escape_str_strict(s.decode('utf8'), reversible)
-    elif not isinstance(s, str):
-        if force_str:
-            return str(s)
+def escape_str(s, reversible=True):
+    t = type(s)
+    if t == unicode:
+        return escape_str_strict(s.encode('utf8'), reversible)
+    elif t != str:
         return s
 
     return escape_str_strict(s, reversible)
@@ -102,8 +100,8 @@ def escape_str_strict(s, reversible=True):
                     for t in enumerate(_valid_utf8.split(s))])
 
 
-def safe_str(s, force_str=False):
-    return escape_str(s, reversible=False, force_str=force_str)
+def safe_str(s):
+    return escape_str(s, reversible=False)
 
 
 def is_safe_str(s):
@@ -112,8 +110,9 @@ def is_safe_str(s):
 
 # noinspection PyBroadException
 def translate_str(s, min_confidence=0.7):
-    if isinstance(s, bytes):
-        temp = s.decode("raw_unicode_escape")
+    t = type(s)
+    if t == unicode:
+        temp = s.encode("raw_unicode_escape")
         if "\\u" in temp:
             return {
                 'confidence': 1,
@@ -121,8 +120,8 @@ def translate_str(s, min_confidence=0.7):
                 'converted': safe_str(s)
             }
         s = temp
-    elif isinstance(s, str):
-        raise TypeError('Expected %s or %s got %s' % (str, bytes, type(s)))
+    elif t != str:
+        raise TypeError('Expected %s or %s got %s' % (str, unicode, t))
 
     try:
         r = chardet.detect(s)
@@ -145,62 +144,3 @@ def translate_str(s, min_confidence=0.7):
 # This method not really necessary. More to stop people from rolling their own.
 def unescape_str(s):
     return s.decode('string_escape')
-
-
-class NamedConstants(object):
-
-    def __init__(self, name, string_value_list):
-        self._name = name
-        self._value_map = dict(string_value_list)
-        self._reverse_map = dict([(s[1], s[0]) for s in string_value_list])
-
-        # we also import the list as attributes so things like
-        # tab completion and introspection still work.
-        for s, v in self._value_map.items():
-            setattr(self, s, v)
-
-    def name_for_value(self, v):
-        return self._reverse_map[v]
-
-    def contains_value(self, v):
-        return v in self._reverse_map
-
-    def __getitem__(self, s):
-        return self._value_map[s]
-
-    def __getattr__(self, s):
-        # We implement our own getattr mainly to provide the better exception.
-        return self._value_map[s]
-
-
-class StringTable(object):
-
-    def __init__(self, name, string_value_list):
-        self._name = name
-        self._value_map = dict(string_value_list)
-        self._reverse_map = dict([(s[1], s[0]) for s in string_value_list])
-
-        # we also import the list as attributes so things like
-        # tab completion and introspection still work.
-        for s in self._value_map.keys():
-            setattr(self, s, s)
-
-    def name_for_value(self, v):
-        return self._reverse_map[v]
-
-    def contains_string(self, s):
-        return s in self._reverse_map
-
-    def contains_value(self, v):
-        return v in self._value_map
-
-    def __getitem__(self, s):
-        if s in self._value_map:
-            return s
-        raise AttributeError("Invalid value for %s (%s)" % (self._name, s))
-
-    def __getattr__(self, s):
-        # We implement our own getattr mainly to provide the better exception.
-        if s in self._value_map:
-            return s
-        raise AttributeError("Invalid value for %s (%s)" % (self._name, s))
