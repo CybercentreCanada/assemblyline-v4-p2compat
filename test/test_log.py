@@ -7,6 +7,7 @@ from assemblyline_v4_p2compat.common import forge
 
 def test_logger():
     config = forge.get_config()
+    config.logging.log_to_console = False
     config.logging.log_to_file = True
     config.logging.log_directory = '/tmp'
 
