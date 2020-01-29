@@ -6,7 +6,7 @@ def test_epoch():
     epoch = isotime.now()
 
     assert isinstance(epoch, float)
-    assert int(isotime.local_to_epoch(isotime.iso_to_local(isotime.epoch_to_iso(epoch)))) == int(epoch)
+    assert isotime.local_to_epoch(isotime.iso_to_local(isotime.epoch_to_iso(epoch))) == epoch
 
 
 def test_local():
@@ -29,3 +29,8 @@ def test_iso():
     assert isotime.epoch_to_iso(isotime.iso_to_epoch(now)) == now
 
 
+def test_rounding_error():
+    for t in ["2020-01-29 18:41:25.758416", "2020-01-29 18:41:25.127600"]:
+        epoch = isotime.local_to_epoch(t)
+        local = isotime.epoch_to_local(epoch)
+        assert local == t
