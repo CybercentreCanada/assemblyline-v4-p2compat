@@ -42,7 +42,7 @@ stages:
     - script: |
         set -x  # Echo commands before they are run
         sudo apt-get update
-        sudo apt-get install -y build-essential libffi-dev libfuzzy-dev python2-dev
+        sudo apt-get install -y build-essential libffi-dev libfuzzy-dev python2.7-dev
         sudo -E env "PATH=$PATH" python -m pip install --no-cache-dir -f $(Pipeline.Workspace)/dist/ assemblyline_v4_p2compat
         sudo mkdir -p /etc/assemblyline/
         sudo mkdir -p /var/log/assemblyline/
