@@ -18,6 +18,7 @@ stages:
       displayName: Set python version
       inputs: {versionSpec: 2.7}
     - script: |
+        set -x  # Echo commands before they are run
         sudo env "PATH=$PATH" python -m pip install --no-cache-dir -U wheel cython pip
         python setup.py bdist_wheel
     - publish: $(System.DefaultWorkingDirectory)/dist/

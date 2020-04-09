@@ -16,11 +16,12 @@ jobs:
       inputs:
         versionSpec: '2.7'
     - script: |
+        set -x  # Echo commands before they are run
         sudo mkdir -p /etc/assemblyline/
         sudo mkdir -p /var/log/assemblyline/
         sudo cp test/config.yml /etc/assemblyline
         sudo apt-get update
-        sudo apt-get install -y build-essential libffi-dev libfuzzy-dev python2-dev
+        sudo apt-get install -y build-essential libffi-dev libfuzzy-dev python2.7-dev
         sudo env "PATH=$PATH" python -m pip install --no-cache-dir -e . -r test/requirements.txt
       displayName: Setup environment
     - script: python -m pytest -rsx -vv
