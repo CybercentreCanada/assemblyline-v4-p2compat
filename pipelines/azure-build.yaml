@@ -1,0 +1,84 @@
+name: build
+
+trigger:
+  tags:
+    include: ["v*"]
+pr: none
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+stages:
+- stage: build
+  jobs:
+  - job: build_package
+    displayName: Build Package
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Set python version
+      inputs: {versionSpec: 2.7}
+    - script: |
+        sudo env "PATH=$PATH" python -m pip install --no-cache-dir -U wheel cython pip
+        python setup.py bdist_wheel
+    - publish: $(System.DefaultWorkingDirectory)/dist/
+      artifact: dist
+    - publish: $(System.DefaultWorkingDirectory)/test/
+      artifact: test
+- stage: test
+  jobs:
+  - job: run_test
+    timeoutInMinutes: 2
+    steps:
+    - checkout: none
+    - task: UsePythonVersion@0
+      displayName: Set python version
+      inputs:
+        versionSpec: '2.7'
+    - download: current
+      artifact: dist
+    - download: current
+      artifact: pipelines
+    - download: current
+      artifact: test
+    - script: |
+        set -x  # Echo commands before they are run
+        sudo apt update
+        sudo apt install -y build-essential libffi-dev libfuzzy-dev python2-dev
+        sudo -E env "PATH=$PATH" python -m pip install --no-cache-dir -f $(Pipeline.Workspace)/dist/ assemblyline_v4_p2compat
+        sudo mkdir -p /etc/assemblyline/
+        sudo mkdir -p /var/log/assemblyline/
+        sudo cp $(Pipeline.Workspace)/test/config.yml /etc/assemblyline
+        sudo -E env "PATH=$PATH" python -m pip install -r $(Pipeline.Workspace)/test/requirements.txt
+      displayName: Install package
+    - script: pytest -rsx -vv
+      workingDirectory: $(Pipeline.Workspace)/test
+      displayName: Test
+- stage: deploy
+  jobs:
+  - job: deploy
+    displayName: Deploy packages and containers
+    variables:
+      - group: deployment-information
+    steps:
+    - download: current
+      artifact: dist
+    - script: |
+        set -xv  # Echo commands before they are run
+        sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
+        ls dist
+        twine upload --skip-existing --repository-url $TEST_REPOSITORY_URL dist/*
+      workingDirectory: $(Pipeline.Workspace)
+      displayName: Deploy to Test PyPI
+      env:
+        TWINE_USERNAME: $(twineUsername)
+        TWINE_PASSWORD: $(twinePassword)
+    - script: |
+        set -xv  # Echo commands before they are run
+        sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
+        ls dist
+        twine upload --skip-existing dist/*
+      workingDirectory: $(Pipeline.Workspace)
+      displayName: Deploy to PyPI
+      env:
+        TWINE_USERNAME: $(twineUsername)
+        TWINE_PASSWORD: $(twinePassword)
