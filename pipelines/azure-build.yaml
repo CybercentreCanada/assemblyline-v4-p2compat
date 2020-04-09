@@ -38,8 +38,6 @@ stages:
     - download: current
       artifact: dist
     - download: current
-      artifact: pipelines
-    - download: current
       artifact: test
     - script: |
         set -x  # Echo commands before they are run
