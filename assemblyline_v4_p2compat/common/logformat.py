@@ -27,4 +27,4 @@ AL_JSON_FORMAT = '{{' \
     '"log.level": "%(levelname)s", ' \
     '"log.logger": "%(name)s", ' \
     '"process.pid": "%(process)d", ' \
-    '"message": %(message)s}}'.format(ip=ip, hostname=hostname)
+    '"message": "%(message)s"}}'.format(ip=ip, hostname=hostname)
